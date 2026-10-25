@@ -1,4 +1,4 @@
-# awam ⚡
+# Awam
 
 > **A developer-first CLI tool for proactive edge case discovery, Socratic testing inquiry, and unit test generation.**
 
@@ -8,7 +8,7 @@ When you're ready, `awam` can draft ready-to-run tests into your project's `test
 
 ---
 
-## ✨ Features
+## Features
 
 - **Terminal Native:** Runs directly in your CLI where you code—no context switching or copy-pasting code into web chatbots.
 - **Socratic Inquiry by Default:** Running `awam <file>` is non-destructive. It presents missing edge cases as thought-provoking questions to build your testing intuition rather than spoon-feeding code.
@@ -25,17 +25,25 @@ When you're ready, `awam` can draft ready-to-run tests into your project's `test
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Installation
 
-Install in editable mode from the project repository:
+Clone and install in editable mode:
 
 ```bash
 git clone https://github.com/<user>/awam.git
 cd awam
+
+# Optional but recommended: use a virtual environment
+python -m venv .venv
+# On Windows: .venv\Scripts\activate
+# On Linux/macOS: source .venv/bin/activate
+
 pip install -e .
 ```
+
+> **Note for Windows users:** If you install globally without a virtual environment and `awam` isn't found in your PATH, you can either add Python's `Scripts/` folder to PATH, or invoke the CLI directly using Python's module syntax: `python -m awam.cli <file>`.
 
 ### 2. Configure API Key (Optional)
 
@@ -56,7 +64,7 @@ set GEMINI_API_KEY=your-gemini-api-key
 
 ---
 
-## 🛠️ Usage
+## Usage
 
 ### 1. Safe Socratic Inquiry Mode (Default)
 ```bash
@@ -97,7 +105,7 @@ Displays a syntax-highlighted preview of the test code that `awam` would generat
 ```bash
 awam sample/calculator.py --verbose --mock
 ```
-Displays diagnostic metadata in the footer: analyzed files, target test file destination, model name (`gemini-3.8-flash`), and latency.
+Displays diagnostic metadata in the footer: analyzed files, target test file destination, model name (`gemini-3.1-flash-lite`), and latency.
 
 ---
 
@@ -110,7 +118,7 @@ devpost-challenge/
 │   ├── cli.py                # Click CLI entrypoint & options (--generate, --run, --mock)
 │   ├── analyzer.py           # Pre-flight syntax validation & AST checks
 │   ├── resolver.py           # Local import traversal (max 3 files)
-│   ├── engine.py             # Gemini 3.8 Flash client, Pydantic schemas & Socratic prompts
+│   ├── engine.py             # Gemini 3.1 Flash Lite client, Pydantic schemas & Socratic prompts
 │   ├── test_manager.py       # Smart discovery & non-duplicating test appending in tests/
 │   ├── runner.py             # Subprocess pytest runner & developer fix advisor
 │   └── reporter.py           # Rich terminal UI, tables, panels & UTF-8 Windows handling

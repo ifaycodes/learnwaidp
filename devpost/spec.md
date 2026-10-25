@@ -112,7 +112,7 @@ Implements `prd.md > Look and Feel`:
   • Files analyzed: sample/app.py, sample/helper.py (local)
   • External packages mocked: requests
   • Target test file: tests/test_app.py (appended 2 tests)
-  • Model: gemini-3.8-flash | Latency: 1.1s | Tokens: 480 in / 190 out
+  • Model: gemini-3.1-flash-lite | Latency: 1.1s | Tokens: 480 in / 190 out
   ```
 
 ---
@@ -227,7 +227,7 @@ devpost-challenge/
 
 | Service / Dependency | Endpoint / SDK | Credentials | Rate Limits / Free Tier | Cost |
 |---|---|---|---|---|
-| **Google Gemini Flash** | `google-genai` SDK (`gemini-3.8-flash`) | `GEMINI_API_KEY` in environment | Free tier: 15 Requests Per Minute (RPM), 1500 Requests Per Day | **$0.00** on free tier |
+| **Google Gemini Flash** | `google-genai` SDK (`gemini-3.1-flash-lite`) | `GEMINI_API_KEY` in environment | Free tier: 15 Requests Per Minute (RPM), 1500 Requests Per Day | **$0.00** on free tier |
 
 ---
 

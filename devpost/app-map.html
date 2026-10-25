@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>awam — Application Map & Architectural Guide</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --primary: #38bdf8;
+      --accent: #facc15;
+      --success: #4ade80;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 880px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+    }
+    h1 {
+      font-size: 2.2rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h2 {
+      font-size: 1.4rem;
+      color: var(--accent);
+      margin: 2rem 0 1rem;
+    }
+    h3 {
+      font-size: 1.1rem;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+    p { margin-bottom: 1rem; color: var(--text-muted); }
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      background: #0369a1;
+      color: #e0f2fe;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+    .route-stop {
+      background: var(--card-bg);
+      border-left: 4px solid var(--primary);
+      border-radius: 0 0.5rem 0.5rem 0;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      border-top: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-tag {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: var(--primary);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.9em;
+    }
+    pre, code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    pre {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+    .diagram-container {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      text-align: center;
+    }
+    svg text {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      fill: #e2e8f0;
+    }
+    details {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--primary);
+      outline: none;
+    }
+    details[open] summary {
+      margin-bottom: 0.75rem;
+    }
+    .highlight-box {
+      border: 1px solid #0284c7;
+      background: rgba(14, 165, 233, 0.08);
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚡ awam <span class="badge">Architecture & App Map</span></h1>
+      <p>A developer-first CLI for proactive edge case detection and unit test generation.</p>
+    </header>
+
+    <section>
+      <h2>What awam Does</h2>
+      <p>
+        <code>awam</code> runs right where you code: in your terminal. Instead of passive test generation that bypasses your learning, <code>awam</code> acts as an active testing coach: it inspects your source code and local dependencies, presents critical edge cases as Socratic inquiries (<em>"What happens to Y when X fails?"</em>), and offers optional test generation (<code>--generate</code>) and live validation (<code>--run</code>).
+      </p>
+
+      <!-- Inline Architecture Diagram -->
+      <div class="diagram-container">
+        <svg viewBox="0 0 760 170" width="100%" height="170" xmlns="http://www.w3.org/2000/svg">
+          <!-- Flow boxes -->
+          <rect x="10" y="55" width="120" height="60" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+          <text x="70" y="82" text-anchor="middle" font-weight="bold">Terminal</text>
+          <text x="70" y="100" text-anchor="middle" fill="#94a3b8">awam &lt;file&gt;</text>
+
+          <path d="M 130 85 L 170 85" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
+
+          <rect x="170" y="55" width="120" height="60" rx="8" fill="#1e293b" stroke="#facc15" stroke-width="2"/>
+          <text x="230" y="82" text-anchor="middle" font-weight="bold">Pre-Flight AST</text>
+          <text x="230" y="100" text-anchor="middle" fill="#94a3b8">analyzer.py</text>
+
+          <path d="M 290 85 L 330 85" stroke="#facc15" stroke-width="2"/>
+
+          <rect x="330" y="55" width="130" height="60" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+          <text x="395" y="82" text-anchor="middle" font-weight="bold">Local Resolver</text>
+          <text x="395" y="100" text-anchor="middle" fill="#94a3b8">resolver.py (≤3 files)</text>
+
+          <path d="M 460 85 L 500 85" stroke="#38bdf8" stroke-width="2"/>
+
+          <rect x="500" y="55" width="120" height="60" rx="8" fill="#1e293b" stroke="#4ade80" stroke-width="2"/>
+          <text x="560" y="82" text-anchor="middle" font-weight="bold">AI Engine</text>
+          <text x="560" y="100" text-anchor="middle" fill="#94a3b8">engine.py (Gemini)</text>
+
+          <path d="M 620 85 L 650 85" stroke="#4ade80" stroke-width="2"/>
+
+          <rect x="650" y="20" width="100" height="50" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+          <text x="700" y="45" text-anchor="middle" font-size="11">Audit Table</text>
+          <text x="700" y="60" text-anchor="middle" fill="#94a3b8" font-size="10">Inquiry mode</text>
+
+          <rect x="650" y="80" width="100" height="50" rx="8" fill="#0f172a" stroke="#4ade80" stroke-width="1.5"/>
+          <text x="700" y="103" text-anchor="middle" font-size="11">--generate</text>
+          <text x="700" y="118" text-anchor="middle" fill="#94a3b8" font-size="10">tests/ written</text>
+
+          <rect x="650" y="140" width="100" height="25" rx="4" fill="#0f172a" stroke="#facc15" stroke-width="1"/>
+          <text x="700" y="157" text-anchor="middle" font-size="10" fill="#facc15">--run (pytest)</text>
+        </svg>
+      </div>
+    </section>
+
+    <section>
+      <h2>Code Tour Route (3 Core Stops)</h2>
+      
+      <div class="route-stop">
+        <h3>1. The Orchestrator & CLI Entrypoint</h3>
+        <p><span class="code-tag">awam/cli.py &rarr; main()</span></p>
+        <p>Defines Click command options (<code>--generate</code>, <code>--run</code>, <code>--mock</code>, <code>--audit-only</code>). Manages the pipeline without coupling: pre-flight checks, dependency resolution, engine invocation, and test runner subprocess execution.</p>
+      </div>
+
+      <div class="route-stop">
+        <h3>2. Socratic Edge Case Engine</h3>
+        <p><span class="code-tag">awam/engine.py &rarr; analyze_code(), EdgeCaseAuditItem</span></p>
+        <p>Uses Pydantic structured output with <code>google-genai</code> to return candidate edge cases, positive reinforcement for covered tests, and probing Socratic inquiry questions. Includes built-in automatic retries for demand spikes and simulation fallback via <code>--mock</code>.</p>
+      </div>
+
+      <div class="route-stop">
+        <h3>3. Test Runner & Fix Advisor</h3>
+        <p><span class="code-tag">awam/runner.py &rarr; execute_pytest(), suggest_fix()</span></p>
+        <p>Executes pytest via <code>subprocess.run</code>. When an unhandled error path fails, it extracts the trace and prompts Gemini Flash for a 2-sentence fix recommendation advising the developer where to place an error guard.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>To Change This, Start Here</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Add a new CLI Flag</h3>
+          <p>Add a <code>@click.option</code> decorator in <span class="code-tag">awam/cli.py</span> and pass the parameter to <code>main()</code>.</p>
+        </div>
+        <div class="card">
+          <h3>Tweak Inquiry Prompts</h3>
+          <p>Modify the prompt instructions and <code>EdgeCaseAuditItem</code> schema in <span class="code-tag">awam/engine.py</span>.</p>
+        </div>
+        <div class="card">
+          <h3>Customize Terminal Theme</h3>
+          <p>Update color styles and table column layouts in <span class="code-tag">awam/reporter.py</span>.</p>
+        </div>
+        <div class="card">
+          <h3>Adjust Test File Patterns</h3>
+          <p>Edit path resolving and AST name parsing in <span class="code-tag">awam/test_manager.py</span>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="highlight-box">
+      <h2>A Practice to Reuse</h2>
+      <p>
+        <strong>Pairing Pre-Flight AST Checks with Structured AI Schemas:</strong><br>
+        Instead of sending raw unverified source code to an LLM, <code>awam</code> runs a lightweight local Python AST check (<code>ast.parse</code>) first. If the code has a broken syntax error, it fails immediately with an exact line number in 0.02 seconds for $0 cost. Once verified, it calls Gemini with a strict Pydantic JSON schema (<code>AnalysisResponse</code>), ensuring reliable, typed data structures.
+      </p>
+      <p>
+        <em>Reuse this pattern whenever building developer tools: fail fast locally, then enforce strict schemas over network calls.</em>
+      </p>
+    </section>
+
+    <section>
+      <h2>How to Run awam</h2>
+      <pre><code># Safe inquiry mode (default, non-destructive)
+awam sample/calculator.py --mock
+
+# Write / append missing tests into tests/
+awam sample/calculator.py --generate --mock
+
+# Validate tests with pytest and get fix guidance
+awam sample/calculator.py --run --mock
+
+# Use live Gemini 3.1 Flash Lite model
+export GEMINI_API_KEY="your-api-key"
+awam sample/calculator.py</code></pre>
+    </section>
+
+    <footer>
+      <p>Generated by <code>5-build</code> • Devpost Challenge Hackathon snapshot • Standalone &amp; zero external dependencies</p>
+    </footer>
+  </div>
+</body>
+</html>

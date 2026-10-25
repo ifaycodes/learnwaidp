@@ -39,7 +39,7 @@ class FixSuggestion(BaseModel):
 
 def get_api_key() -> Optional[str]:
     """Retrieve Gemini API key from environment."""
-    return os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    return os.getenv("GEMINI_API_KEY")
 
 def _generate_mock_analysis(
     target_filename: str,
