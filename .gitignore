@@ -1,0 +1,15 @@
+# Personal learning context
+/devpost/learner-profile.md
+
+# Credentials & environment variables
+.env
+.env.*
+!.env.example
+
+# Python build & test artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+

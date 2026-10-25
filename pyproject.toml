@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "awam"
+version = "0.1.0"
+description = "A developer-first CLI tool for proactive edge case detection and unit test generation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.1.0",
+    "rich>=13.7.0",
+    "google-genai>=0.8.0",
+    "pydantic>=2.0.0",
+    "pytest>=8.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+awam = "awam.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["awam*"]
