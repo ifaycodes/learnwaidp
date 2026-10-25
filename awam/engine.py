@@ -24,6 +24,7 @@ class EdgeCaseAuditItem(BaseModel):
     scenario: str = Field(description="Description of the edge case or boundary condition")
     status: Literal["covered", "missing"] = Field(description="Whether an existing test covers this case")
     matched_test: Optional[str] = Field(default=None, description="Name of existing test function that covers this case")
+    inquiry: str = Field(default="", description="Probing Socratic question for developer (e.g. 'What happens to Y when X fails?')")
     reason: str = Field(description="Why this case is a critical risk, or how existing test verifies it")
 
 class AnalysisResponse(BaseModel):
@@ -56,30 +57,37 @@ def _generate_mock_analysis(
             scenario=f"Standard valid input execution for {base_name}",
             status="covered" if has_happy_test else "missing",
             matched_test="test_happy_path" if has_happy_test else None,
+            inquiry=f"Does {base_name} return the expected output under standard valid parameters?",
             reason="Basic valid input computation handled by existing tests." if has_happy_test else "Baseline happy path validation."
         ),
         EdgeCaseAuditItem(
-            scenario="Division by zero or denominator boundary condition",
+            scenario="Division by zero / denominator boundary condition",
             status="missing",
             matched_test=None,
+            inquiry="What should divide(a, 0) do? Should it raise a ZeroDivisionError, return a fallback, or validate upfront?",
             reason="Unchecked zero denominator triggers unhandled ZeroDivisionError in production."
         ),
         EdgeCaseAuditItem(
             scenario="Negative numeric argument or boundary discount value",
             status="missing",
             matched_test=None,
+            inquiry="What happens to the price if discount_percent or price is negative? Does it corrupt billing or raise ValueError?",
             reason="Negative inputs may bypass business rule validations or corrupt pricing data."
         ),
         EdgeCaseAuditItem(
             scenario="Empty collection or empty list payload",
             status="missing",
             matched_test=None,
-            reason="Passing an empty list triggers ZeroDivisionError or IndexError on aggregations."
+            inquiry="What should parse_user_scores([]) return? Does it crash on sum/max or return clean default metrics?",
+            reason="Passing an empty list triggers ZeroDivisionError or ValueError on aggregations."
         ),
     ]
 
+    dir_name = os.path.dirname(target_filename)
+    path_setup = f"import sys, os\nsys.path.insert(0, os.path.abspath('{dir_name}'))\n" if dir_name else ""
+
     generated_tests = f'''import pytest
-from {base_name} import divide, calculate_discount, parse_user_scores
+{path_setup}from {base_name} import divide, calculate_discount, parse_user_scores
 
 def test_divide_by_zero():
     """Verify divide raises ZeroDivisionError when denominator is zero."""
@@ -108,7 +116,7 @@ def analyze_code(
     source_code: str,
     dependency_files: Optional[Dict[str, str]] = None,
     existing_tests: str = "",
-    model_name: str = "gemini-3.8-flash",
+    model_name: str = "gemini-3.1-flash-lite",
 ) -> tuple[AnalysisResponse, float]:
     """Run proactive edge case audit and test generation via Gemini Flash.
     
@@ -165,10 +173,11 @@ Analyze the target file and any local dependencies below.
 
 Instructions:
 1. Identify 3 to 6 critical candidate edge cases (e.g. unhandled exceptions, None/null inputs, empty collections, zero values, negative values, boundary conditions, or helper exceptions).
-2. For each candidate case, evaluate if it is ALREADY covered by the existing test suite:
+2. For each candidate case, formulate a probing Socratic question in `inquiry` (e.g. "What happens to Y when X fails?", "What should calculate_discount return if price is negative?").
+3. Evaluate if it is ALREADY covered by the existing test suite:
    - If covered: set `status="covered"`, specify `matched_test` (the test function name), and provide a positive reinforcement note in `reason`.
    - If not covered: set `status="missing"`, set `matched_test=None`, and describe why it is a critical production risk in `reason`.
-3. In `generated_tests`, generate CLEAN, READY-TO-RUN pytest test functions covering ONLY the missing edge cases.
+4. In `generated_tests`, generate CLEAN, READY-TO-RUN pytest test functions covering ONLY the missing edge cases.
    - Do NOT duplicate tests for cases that are already covered.
    - Include clear docstrings explaining what edge case is tested.
    - Use standard pytest idioms (e.g. `with pytest.raises(...)`).
@@ -177,8 +186,8 @@ Instructions:
 
     start_time = time.time()
     models_to_try = [model_name]
-    if model_name == "gemini-3.8-flash":
-        models_to_try.append("gemini-3.1-flash-lite")
+    if model_name == "gemini-3.1-flash-lite":
+        models_to_try.append("gemini-3.8-flash")
 
     response = None
     used_model = model_name
