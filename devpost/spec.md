@@ -7,19 +7,19 @@ status: approved
 
 ## How This Works, In Plain Language
 
-`awam` is a command-line tool written in Python that helps developers discover hidden bugs and edge cases before their code hits production, generating ready-to-run unit tests directly in their repository.
+`awam` is a command-line tool written in Python that helps developers discover hidden bugs and edge cases before their code hits production, cultivating testing intuition through Socratic inquiries and generating ready-to-run unit tests directly in their repository.
 
 Here is how the system fits together in plain terms:
 1. **The Entrypoint:** You run `awam src/app.py` in your terminal. `awam` parses your CLI flags and verifies the file exists.
-2. **Pre-Flight Checker:** Before making any network or AI calls, `awam` checks the file locally using Python's built-in syntax engine (`ast.parse`). If there is a syntax error or a broken parameter call, it catches it immediately and warns you, saving API calls.
-3. **Local Import Resolver:** `awam` inspects your file's imports to find local modules (like `import grow` or `./grow.js`). It loads up to 2 local helper files (maximum 3 files total) so it understands what external functions return and what errors they might throw.
+2. **Pre-Flight Checker:** Before making any network or AI calls, `awam` checks the file locally using Python's built-in syntax engine (`ast.parse`). If there is a syntax error or a broken parameter call, it catches it immediately in 0.02s and warns you, saving API calls.
+3. **Local Import Resolver:** `awam` inspects your file's imports to find local modules (like `import helper`). It loads up to 2 local helper files (maximum 3 files total) so it understands what external functions return and what errors they might throw.
 4. **Existing Test Inspection:** `awam` looks into your `tests/` directory to see if you already have existing tests (e.g. `tests/test_app.py`).
-5. **AI Audit Engine:** It sends your source code, local dependencies, and existing tests to Google Gemini Flash with a strict JSON format request. Gemini returns:
-   - Candidate edge cases (null inputs, empty lists, boundary values, network failures).
+5. **AI Audit Engine:** It sends your source code, local dependencies, and existing tests to Google Gemini Flash (or offline heuristic simulation if `--mock` is used). Gemini returns:
+   - Candidate edge cases with probing Socratic inquiry questions (*"What happens to Y when X fails?"*).
    - An audit status for each case: `covered` (if an existing test handles it) or `missing` (if it's an untested gap).
    - Clean, runnable test code for only the missing cases.
-6. **Smart Test Writer:** `awam` writes or appends the new test cases to `tests/test_app.py` without touching your existing tests. (If `--audit-only` was passed, it skips writing to disk).
-7. **Validation Runner & Fix Advisor:** If you passed `--run`, `awam` runs `pytest` or `npm test` automatically. If any tests fail, it captures the failure traceback and asks Gemini for a 2-sentence fix suggestion explaining what error guard to add in your source code. You fix the code; `awam` never alters your source files.
+6. **Inquiry by Default & On-Demand Test Writing:** By default, `awam <file>` is non-destructive, displaying the inquiry audit table so the developer can write tests themselves. If `--generate` is passed, `awam` cleanly writes or appends the new test cases to `tests/test_app.py` without touching existing tests.
+7. **Validation Runner & Fix Advisor:** If you passed `--run`, `awam` runs `pytest` automatically. If any tests fail, it captures the failure traceback and asks Gemini for a 2-sentence fix suggestion explaining what error guard to add in your source code. You fix the code; `awam` never alters your source files.
 
 We chose this lightweight, stateless architecture because it requires zero server infrastructure, runs in under 3 seconds, costs $0 to test, and fits directly into standard developer terminal habits.
 
@@ -29,21 +29,21 @@ We chose this lightweight, stateless architecture because it requires zero serve
 
 Traced step-by-step from `prd.md > The Core Journey`:
 
-1. **Invocation:** Developer runs `awam src/app.py --run` in their project terminal.
-2. **Flag & Path Parsing:** `cli.py` extracts arguments (`file=src/app.py`, `run=True`, `audit_only=False`, `verbose=False`, `output=None`).
-3. **Pre-flight Check:** `analyzer.py` runs Python `ast.parse` (or Node regex check). If valid, emits step: `[awam] Pre-flight syntax check passed.`
-4. **Dependency Traversal:** `resolver.py` finds `import grow` in `src/app.py`, confirms `src/grow.py` exists on disk, reads both files, and caps total files to 3.
+1. **Invocation:** Developer runs `awam src/app.py` (or includes `--generate`, `--run`, `--mock`, `--verbose`) in their project terminal.
+2. **Flag & Path Parsing:** `cli.py` extracts arguments (`file=src/app.py`, `generate=False`, `run=False`, `mock=False`, `audit_only=False`, `verbose=False`, `output=None`).
+3. **Pre-flight Check:** `analyzer.py` runs Python `ast.parse`. If valid, emits step: `[awam] Pre-flight syntax check passed.`
+4. **Dependency Traversal:** `resolver.py` finds `import helper` in `src/app.py`, confirms `src/helper.py` exists on disk, reads both files, and caps total files to 3.
 5. **Test Discovery:** `test_manager.py` checks for `tests/test_app.py`, reads its content (or notes it as absent).
-6. **Gemini Audit Call:** `engine.py` builds the prompt with source code + existing test content and calls Gemini Flash with a structured JSON schema.
+6. **Gemini Audit Call:** `engine.py` builds the prompt with source code + existing test content and calls Gemini Flash (`gemini-3.1-flash-lite`) with a structured JSON schema, or uses offline simulation if `--mock` is active.
 7. **Audit Display:** `reporter.py` prints the color-coded audit table using `rich`:
    - `[✓] Already covered: Valid input calculation` (Green)
-   - `[+] Missing gap: Null payload handling` (Yellow)
+   - `[+] Missing gap: Division by zero (❓ What should divide(a, 0) do?)` (Yellow)
    - `[+] Missing gap: Negative price boundary` (Yellow)
-8. **File Write (unless `--audit-only`):** `test_manager.py` appends the generated test functions into `tests/test_app.py`.
+8. **File Write (only if `--generate`):** `test_manager.py` appends the generated test functions into `tests/test_app.py`.
 9. **Validation (`--run`):** `runner.py` executes `pytest tests/test_app.py` via `subprocess.run`.
    - If tests pass: Green banner displayed.
    - If a test fails: Displays failure traceback + targeted Gemini suggestion: *"In src/app.py:12, add `if price < 0: raise ValueError(...)` before computing discounts."*
-10. **Diagnostics (if `--verbose`):** Prints timing, tokens, and resolved dependencies at the bottom.
+10. **Diagnostics (if `--verbose`):** Prints timing, model, and resolved dependencies at the bottom.
 
 ---
 
@@ -52,11 +52,10 @@ Traced step-by-step from `prd.md > The Core Journey`:
 | Technology | Role | Version / Docs | Rationale & Tradeoffs |
 |---|---|---|---|
 | **Python** | CLI Core Runtime | `>= 3.10` / [docs.python.org](https://docs.python.org/3/) | Native AST parsing, rapid subprocess handling, cross-platform compatibility across Windows/macOS/Linux. |
-| **`google-genai`** | AI Client SDK | `>= 0.8.0` / [ai.google.dev/gemini-api/docs](https://ai.google.dev/gemini-api/docs) | Official Google GenAI SDK. Supports Gemini 2.0 / 1.5 Flash structured JSON outputs, ultra-fast latency, and a generous free tier ($0 cost). |
+| **`google-genai`** | AI Client SDK | `>= 0.8.0` / [ai.google.dev/gemini-api/docs](https://ai.google.dev/gemini-api/docs) | Official Google GenAI SDK. Supports Gemini 3.1 Flash Lite structured JSON outputs, ultra-fast latency, and a generous free tier ($0 cost). |
 | **`rich`** | Terminal UI & Formatting | `>= 13.7.0` / [rich.readthedocs.io](https://rich.readthedocs.io/) | Beautiful, colored terminal output, spinners, tables, and tracebacks without clunky terminal escape sequences. |
 | **`click`** | CLI Argument Parser | `>= 8.1.0` / [click.palletsprojects.com](https://click.palletsprojects.com/) | Clean, declarative command line interface definition with built-in help and flag handling. |
 | **`pytest`** | Target Test Runner (Python) | `>= 8.0.0` / [docs.pytest.org](https://docs.pytest.org/) | Standard Python test execution invoked via subprocess when `--run` is supplied. |
-| **`npm` / `jest`** | Target Test Runner (Node) | Native / [jestjs.io](https://jestjs.io/) | Standard Node test execution invoked via subprocess when testing JavaScript/TypeScript files. |
 
 ---
 
@@ -75,19 +74,42 @@ pip install -e .
 ```
 This registers the global `awam` command directly in the user's terminal.
 
-### Starting and Trying It
+### Starting and Trying It (CLI Flags Reference)
+
+`awam` provides a focused, developer-friendly command-line interface. By default, running `awam <file>` is completely safe and non-destructive.
+
+| Flag / Tag | Alias | Default | Purpose & What It Does |
+|---|---|---|---|
+| `awam <file>` | *(None)* | *(Required)* | **Default Socratic Inquiry Mode:** Parses the target Python file, checks syntax locally with AST, resolves local imports, audits existing test coverage, and renders the Unified Edge Case Audit with probing Socratic questions (*"❓ Inquiry: What happens to Y when X fails?"*). Modifies zero files on disk, encouraging developers to formulate their own tests. |
+| `--generate` | `-g` | `False` | **On-Demand Test Generation:** Appends runnable pytest test functions for newly detected missing edge cases into `tests/test_<name>.py` (or `--output`). Preserves existing tests without modification or duplication. |
+| `--run` | *(None)* | `False` | **Validation Test Runner:** Executes `pytest` against the test file via `subprocess`. Displays a green passing banner on success, or failure traces accompanied by a targeted 2-sentence developer fix suggestion explaining what error guard to add to the source code. Never modifies source code. |
+| `--mock` | `--demo` | `False` | **Offline Simulation Mode:** Bypasses external Gemini API calls completely, using local heuristic analysis to generate realistic edge cases and tests. Enables zero-quota testing, offline demonstrations, and cross-shell execution without requiring `GEMINI_API_KEY`. |
+| `--audit-only` | *(None)* | `False` | **Syntax Preview Mode:** Displays a syntax-highlighted preview of the generated test code directly in the terminal without modifying disk. |
+| `--verbose` | `-v` | `False` | **Telemetry & Diagnostics:** Displays detailed diagnostic metadata in a clean footer at the bottom of the output (files analyzed, external mocks, target test file, LLM model, tokens, and latency). |
+| `--output <path>` | `-o` | `tests/test_<name>.py` | **Custom Destination:** Specifies a custom output file path for generated tests instead of the default `tests/test_<name>.py`. |
+
+#### Common Invocations:
 ```bash
-# Basic run: analyze code and generate missing tests
+# 1. Default Inquiry Mode (Safe, non-destructive, poses Socratic questions)
 awam sample/calculator.py
 
-# Run and immediately execute pytest/jest with fix tips on failure
-awam sample/calculator.py --run
+# 2. Offline Simulation Mode (No API key needed, zero quota consumed)
+awam sample/calculator.py --mock
 
-# Preview edge cases and tests without writing to disk
-awam sample/calculator.py --audit-only
+# 3. On-Demand Test Generation (Writes missing tests into tests/test_calculator.py)
+awam sample/calculator.py --generate --mock
 
-# View verbose diagnostics (files resolved, tokens, latency)
-awam sample/calculator.py --verbose
+# 4. Live Validation Runner (Executes pytest and provides developer fix suggestions on failure)
+awam sample/calculator.py --run --mock
+
+# 5. Combined Generate & Validate (Writes tests and immediately runs pytest)
+awam sample/calculator.py --generate --run --mock
+
+# 6. Preview Test Code Syntax (Displays generated test syntax preview without writing to disk)
+awam sample/calculator.py --audit-only --mock
+
+# 7. Verbose Diagnostics (Displays files resolved, model name, tokens, and latency)
+awam sample/calculator.py --verbose --mock
 ```
 
 ### Devpost Submission Note
@@ -125,18 +147,18 @@ Implements `prd.md > Look and Feel`:
 * **PRD Ref:** Implements `prd.md > Interaction Surface & Terminal Output`.
 
 ### Pre-Flight Lint & Syntax Checker (`awam.analyzer`)
-* **What it does:** Scans target source files using Python's `ast.parse` (or basic syntax validation for JS) before any external API calls are made. If syntax errors exist, reports line numbers immediately.
+* **What it does:** Scans target source files using Python's `ast.parse` before any external API calls are made. If syntax errors exist, reports line numbers immediately.
 * **What it talks to:** Local filesystem, `reporter.py`.
 * **PRD Ref:** Implements `prd.md > 1. Pre-Flight Lint & Syntax Sanity Check`.
 
 ### Multi-File Context Resolver (`awam.resolver`)
-* **What it does:** Inspects `import` / `require` statements in the primary file, identifies relative local files on disk (ignoring third-party and standard library packages), and loads up to 2 local helper files (maximum 3 files total).
+* **What it does:** Inspects `import` statements (`import ...`, `from ... import ...`) in the primary file, identifies relative local `.py` files on disk (ignoring third-party and standard library packages), and loads up to 2 local helper files (maximum 3 files total).
 * **What it talks to:** Local filesystem.
 * **PRD Ref:** Implements `prd.md > 2. Multi-File Context Analysis (Max 3 Files)`.
 
 ### AI Analysis & Audit Engine (`awam.engine`)
 * **What it does:** Constructs the prompt with source code, local dependencies, and existing test contents. Calls Gemini Flash with structured schema to return:
-  1. Candidate edge cases.
+  1. Candidate edge cases with Socratic inquiry questions (*"❓ Inquiry: What happens to Y when X fails?"*).
   2. Status (`covered` vs `missing`).
   3. Generated test code for missing cases.
 * **What it talks to:** `google.genai.Client`, `GEMINI_API_KEY`.
@@ -148,7 +170,7 @@ Implements `prd.md > Look and Feel`:
 * **PRD Ref:** Implements `prd.md > 4. Smart Test File Management in tests/`.
 
 ### Validation Runner & Fix Advisor (`awam.runner`)
-* **What it does:** When `--run` is supplied, invokes the native test runner (`pytest` or `npm test`). If a test fails, extracts the error traceback and prompts Gemini Flash for a concise 2-sentence developer fix suggestion.
+* **What it does:** When `--run` is supplied, invokes the native test runner (`pytest`). If a test fails, extracts the error traceback and prompts Gemini Flash for a concise 2-sentence developer fix suggestion.
 * **What it talks to:** Python `subprocess`, `engine.py`, `reporter.py`.
 * **PRD Ref:** Implements `prd.md > 5. Validation Runner & Developer-Led Fix Suggestions (--run)`.
 
@@ -169,6 +191,7 @@ class EdgeCaseAuditItem(BaseModel):
     scenario: str          # Description of the edge case (e.g. "Null input parameter")
     status: Literal["covered", "missing"] # Audit status
     matched_test: str | None # Existing test function name if covered
+    inquiry: str = ""      # Probing Socratic question for developer (e.g. 'What happens to Y when X fails?')
     reason: str            # Brief explanation why it is covered or why it is a risk
 ```
 
@@ -203,7 +226,7 @@ devpost-challenge/
 │   ├── resolver.py           # Local import and dependency scanner (max 3 files)
 │   ├── engine.py             # Gemini Flash API client and prompt orchestration
 │   ├── test_manager.py       # Test file discovery, creation, and appending in tests/
-│   ├── runner.py             # Subprocess pytest/jest execution and failure capture
+│   ├── runner.py             # Subprocess pytest execution and failure capture
 │   └── reporter.py           # Rich terminal console formatting, tables, and colors
 ├── sample/                   # Demo sample files for testing and video recording
 │   ├── calculator.py         # Sample source file with edge cases
